@@ -4,6 +4,9 @@ infer what type of an operation is happening.
 """
 import sys
 import inspect
+import datetime
+import pickle
+import base64
 
 def verify(mldb):
 	"""
@@ -29,12 +32,51 @@ def codeGen(mldb):
 	Given an mldb pipeline this function generates python code to
 	execute the pipeline.
 	"""
+
+	#collect all of the imports
 	importString = __extractAllImports(mldb)
+	program_code = importString + "import pickle\nimport base64\n\n" 
 
+	#collect all of the udfs
 	for p in mldb.pipeline:
-		importString = importString + ''.join(inspect.getsourcelines(p.func)[0])
+		program_code = program_code + __process_lines(inspect.getsourcelines(p.func)[0])
 
-	return importString
+	#generate exec function
+	exec_code = "\ndef runAll(data): \n"
+	for p in mldb.pipeline:
+		#get the def
+		fname = __get_def_line(inspect.getsourcelines(p.func)[0])
+
+		#setup the arguments
+		argin, inputtype, outputtype = p.getHints()
+		for a in range(0,len(p.args)):
+			if a != argin:
+				pickeledString = pickle.dumps(p.args[a], protocol=0)
+				varname = fname+"_"+ str(a)
+				varstring = varname + ' = pickle.loads(base64.decodestring(\'' + base64.b64encode(pickeledString)+'\'))'
+			else:
+				varname = fname+"_"+ str(a)
+				varstring = varname + ' = data'
+
+			exec_code = exec_code + '\t' + varstring + '\n'
+
+		argnames = ','.join([fname+"_"+ str(a) for a in range(0,len(p.args))])
+		exec_code = exec_code + '\tdata = ' + fname + '(' + argnames + ")" + '\n'
+
+	exec_code = exec_code + '\treturn data \n'
+
+	return program_code + exec_code
+
+def __get_def_line(lines):
+
+	for l in lines:
+		if 'def ' in l:
+			fsig = l.strip().split(" ")[1]
+			fname = fsig.split("(")[0]
+			return fname
+
+	return None
+
 
 
 def __process_lines(lines):
@@ -42,7 +84,22 @@ def __process_lines(lines):
 	This function processes the lines by stripping output
 	mldb meta data and extra tabs.
 	"""
-	
+	first_def = True
+	num_tabs = 0
+	plines = []
+
+	for l in lines:
+		if '@pipeline_stage' in l:
+			continue
+		elif first_def and 'def ' in l:
+			num_tabs = l.index('def')
+			first_def = False
+
+		plines.append(l[num_tabs:])
+
+	return ''.join(plines)
+
+
 
 
 def __extractAllImports(mldb):
