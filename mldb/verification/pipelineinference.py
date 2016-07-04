@@ -2,9 +2,9 @@
 This class provides the function decorators to
 infer what type of an operation is happening.
 """
-from IPython import embed; 
+import sys
 
-def pipeline_stage(mldb):
+def pipeline_stage(mldb, breakpoint=False):
 	"""
 	This decorator defines a pipeline stage
 	and infers what type of an operation it
@@ -22,13 +22,22 @@ def pipeline_stage(mldb):
 
 		def func_wrapper(*args):
 
-			output = func(*args)
+			#catch all exceptions
+			try:
+				output = func(*args)
+				e = ""
+			except:
+				output = [None]
+				e = sys.exc_info()[0]
 
-			#embed()
-			
-			mldb.addPipelineStage(func, args, output)
+			mldb.addPipelineStage(func, args, output, e)
 
-			return output
+			#launch interpeter if break point
+			if breakpoint:
+				interpreter = mldb.embed(func)
+				interpreter()
+
+			return mldb.getOutput(func)
 
 		return func_wrapper
 

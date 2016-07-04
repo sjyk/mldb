@@ -7,6 +7,10 @@ import inspect
 from numpy import ndarray, matrix
 from scipy.sparse import spmatrix
 import collections
+import numpy as np
+
+from IPython.terminal.embed import InteractiveShellEmbed
+import matplotlib.pyplot as plt
 
 #here are some constants to describe the stages
 EXTRACTOR = 0
@@ -29,6 +33,11 @@ class mldb(object):
 		raise an exception for some type issues.
 		"""
 		self.pipeline = []
+
+		#every added pipeline has cached output
+		self.stage_cache = {}
+		self.output_cache = {}
+
 		self.strict = strict
 		self.EXTRACTOR = EXTRACTOR
 		self.CLEANER = CLEANER
@@ -36,13 +45,75 @@ class mldb(object):
 		self.FEATURIZER = FEATURIZER
 		self.TRANSFORMER = TRANSFORMER
 
-	def addPipelineStage(self, func, args, output):
+	def addPipelineStage(self, func, args, output, error=""):
 		"""
 		Adds a mldbpstage to the pipeline, assumes in order execution
 		"""
-		self.pipeline.append(mldbpstage(func, args, output, self.strict))
+		m = mldbpstage(func, args, output, self.strict, error)
+		self.pipeline.append(m)
 
-		#print mldbpstage(func, args, output, self.strict).stagetype()
+		self.stage_cache[func] = m
+		self.output_cache[func] = output
+
+	
+	def embed(self, func):
+		"""
+		Returns an emedded interpreter
+		"""
+		self.ipshell = InteractiveShellEmbed(banner1 = '> ' + str(inspect.getsourcelines(func)[0][1]),
+                       					exit_msg = 'Leaving interpreter, continuing program.')
+		self.cur_func = func
+		return self.ipshell
+
+
+	def getOutput(self, func):
+		return self.output_cache[func]
+
+	##interactive commands
+	
+	"""
+	Next
+	"""
+	def n(self):
+		self.cur_func = None
+		self.ipshell.ex("exit()")
+
+	"""
+	Skip
+	"""
+	def s(self):
+		argin, inputtype, outputtype = self.stage_cache[self.cur_func].getHints()
+		self.output_cache[self.cur_func] = self.stage_cache[self.cur_func].args[argin]
+
+		self.cur_func = None
+		self.ipshell.ex("exit()")
+
+
+	"""
+	Sample
+	"""
+	def samp(self, s=0.1):
+		t, dim1, dim2 = self.stage_cache[self.cur_func].stagetype()
+		N = dim2[0]
+		k = max(int(s*N),1)
+
+		sample_indices = np.random.choice(np.arange(0,N),k)
+		
+		if t == TRANSFORMER or t == FEATURIZER:
+			self.output_cache[self.cur_func] = self.output_cache[self.cur_func][sample_indices, :]
+		else:
+			sample_indices = set(sample_indices)
+			self.output_cache[self.cur_func] = [v for i,v in enumerate(self.output_cache[self.cur_func]) if i in sample_indices]
+
+
+	##data exploration commands
+	def scatter(self, x, y):
+		plt.scatter(x,y)
+		plt.show()
+
+	def hist(self, x):
+		plt.hist(x)
+		plt.show()
 
 
 class mldbpstage(object):
@@ -50,11 +121,12 @@ class mldbpstage(object):
 	This class defines the main mldb stages
 	"""
 
-	def __init__(self, func, args, output, strict):
+	def __init__(self, func, args, output, strict, e=""):
 		self.func = func
 		self.args = args
 		self.output = output
 		self.strict = strict
+		self.error = e
 
 	def getHints(self):
 		"""
