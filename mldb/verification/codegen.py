@@ -27,7 +27,7 @@ def verify(mldb):
 		return True
 
 
-def codeGen(mldb):
+def codegen(mldb):
 	"""
 	Given an mldb pipeline this function generates python code to
 	execute the pipeline.
@@ -100,8 +100,6 @@ def __process_lines(lines):
 	return ''.join(plines)
 
 
-
-
 def __extractAllImports(mldb):
 	"""
 	This function extracts all imports required to run the mldb
@@ -115,4 +113,12 @@ def __extractAllImports(mldb):
 
 	import_lines = list(set([l for l in all_lines if 'import' in l]))
 	return ''.join(import_lines)
+
+
+def featureSynth(mldb):
+	"""
+	Given an MLDB pipeline that ends with a list of lists, this
+	function synthesizes the remaining steps.
+	"""
+
 

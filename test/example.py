@@ -11,12 +11,19 @@ m = mldb()
 
 def g():
 	@pipeline_stage(m)
-	def f(x,y=1,z=4):
+	def f(x,y=np.array([1,1]),z=4):
 		#datain: 0
 		return ['a', 'a', 'b', 'c']
 
-	f(1,3)
+	a = f(1,np.array([1,1]))
 
-	print codeGen(m)
+	@pipeline_stage(m)
+	def h(x,y,z=4):
+		#datain: 1
+		return ['a', 'a', 'b', 'c']
+
+	h(1,a,2)
+
+	print codegen(m)
 
 g()
