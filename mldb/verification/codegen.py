@@ -1,12 +1,13 @@
 """
-This class provides the function decorators to
-infer what type of an operation is happening.
+This file provides the functions to generate
+python code from a pipeline
 """
 import sys
 import inspect
 import datetime
 import pickle
 import base64
+import numpy as np
 
 def verify(mldb):
 	"""
@@ -35,7 +36,7 @@ def codegen(mldb):
 
 	#collect all of the imports
 	importString = __extractAllImports(mldb)
-	program_code = importString + "import pickle\nimport base64\n\n" 
+	program_code = importString + '\nimport pickle\nimport base64\n'
 
 	#collect all of the udfs
 	for p in mldb.pipeline:
@@ -111,14 +112,6 @@ def __extractAllImports(mldb):
 		f = open(filename, 'rb')
 		all_lines.extend(f.readlines())
 
-	import_lines = list(set([l for l in all_lines if 'import' in l]))
-	return ''.join(import_lines)
-
-
-def featureSynth(mldb):
-	"""
-	Given an MLDB pipeline that ends with a list of lists, this
-	function synthesizes the remaining steps.
-	"""
-
+	import_lines = list(set([l.strip() for l in all_lines if 'import ' in l]))
+	return '\n'.join(import_lines)
 

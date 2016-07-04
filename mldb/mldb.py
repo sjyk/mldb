@@ -8,6 +8,8 @@ from numpy import ndarray, matrix
 from scipy.sparse import spmatrix
 import collections
 import numpy as np
+from verification.codegen import *
+from verification.featuregen import *
 
 from IPython.terminal.embed import InteractiveShellEmbed
 
@@ -71,6 +73,9 @@ class mldb(object):
 	def getOutput(self, func):
 		return self.output_cache[func]
 
+	def addFeaturizer(self):
+		output = featureSynth(self.output_cache[self.pipeline[-1].func])
+		self.addPipelineStage(featureSynth, [self.output_cache[self.pipeline[-1].func]], output, "")
 
 	##interactive commands
 	

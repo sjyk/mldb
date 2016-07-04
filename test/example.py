@@ -20,9 +20,11 @@ def g():
 	@pipeline_stage(m)
 	def h(x,y,z=4):
 		#datain: 1
-		return ['a', 'a', 'b', 'c']
+		return [['a', 1], ['a test the bear', 2], ['b',1] , ['c',1], ['c',1], ['c',1]]
 
 	h(1,a,2)
+
+	m.addFeaturizer()
 
 	print codegen(m)
 
