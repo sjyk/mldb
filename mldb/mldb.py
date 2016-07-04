@@ -10,7 +10,6 @@ import collections
 import numpy as np
 
 from IPython.terminal.embed import InteractiveShellEmbed
-import matplotlib.pyplot as plt
 
 #here are some constants to describe the stages
 EXTRACTOR = 0
@@ -49,6 +48,9 @@ class mldb(object):
 		"""
 		Adds a mldbpstage to the pipeline, assumes in order execution
 		"""
+		if func in self.stage_cache:
+			raise ValueError("Multiple function calls not supported yet")
+
 		m = mldbpstage(func, args, output, self.strict, error)
 		self.pipeline.append(m)
 
@@ -69,30 +71,28 @@ class mldb(object):
 	def getOutput(self, func):
 		return self.output_cache[func]
 
+
 	##interactive commands
 	
-	"""
-	Next
-	"""
 	def n(self):
+		"""
+		Exits out of the ipython session
+		"""
 		self.cur_func = None
 		self.ipshell.ex("exit()")
 
-	"""
-	Skip
-	"""
 	def s(self):
+		"""
+		Skips the current command
+		"""
 		argin, inputtype, outputtype = self.stage_cache[self.cur_func].getHints()
 		self.output_cache[self.cur_func] = self.stage_cache[self.cur_func].args[argin]
+		self.n()
 
-		self.cur_func = None
-		self.ipshell.ex("exit()")
-
-
-	"""
-	Sample
-	"""
 	def samp(self, s=0.1):
+		"""
+		Samples the output of the current pipeline stage
+		"""
 		t, dim1, dim2 = self.stage_cache[self.cur_func].stagetype()
 		N = dim2[0]
 		k = max(int(s*N),1)
@@ -107,11 +107,17 @@ class mldb(object):
 
 
 	##data exploration commands
+	
+	#shows a scatter plot of two variables
 	def scatter(self, x, y):
+		import matplotlib.pyplot as plt
 		plt.scatter(x,y)
 		plt.show()
 
+	#shows a histogram of one variable
 	def hist(self, x):
+		import matplotlib.pyplot as plt
+		#todo if not numerical, fix
 		plt.hist(x)
 		plt.show()
 

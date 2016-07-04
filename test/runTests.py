@@ -2,6 +2,7 @@
 
 import numpy as np
 from mldb.verification.pipelineinference import *
+from mldb.verification.codegen import *
 from mldb.mldb import mldb
 import unittest
 
@@ -61,6 +62,38 @@ class TestMLDB(unittest.TestCase):
 		self.assertTrue(m.pipeline[2].stagetype()[0] == m.EXTRACTOR)
 		self.assertTrue(m.pipeline[2].stagetype()[1] == (2,1))
 		self.assertTrue(m.pipeline[2].stagetype()[2] == (2,2))
+
+	def test_verification(self):
+		m = mldb()
+
+		self.assertTrue(verify(m))
+
+		@pipeline_stage(m, False)
+		def f(x):
+			#datain: 0
+			return ['a', 'a', 'b', 'c']
+
+		a = f(1)
+
+		self.assertTrue(verify(m))
+
+		@pipeline_stage(m, False)
+		def g(x):
+			#datain: 0
+			return ['1', '1', '1', '1']
+
+		g(a)
+
+		self.assertTrue(verify(m))
+
+		@pipeline_stage(m, False)
+		def h(x):
+			#datain: 0
+			return ['1', '1', '1', '1']
+
+		h(1)
+
+		self.assertFalse(verify(m))
 
 if __name__ == '__main__':
     unittest.main()

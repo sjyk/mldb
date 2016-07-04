@@ -3,6 +3,7 @@ This class provides the function decorators to
 infer what type of an operation is happening.
 """
 import sys
+import inspect
 
 def pipeline_stage(mldb, breakpoint=False):
 	"""

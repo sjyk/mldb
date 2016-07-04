@@ -2,15 +2,18 @@
 
 import numpy as np
 from mldb.verification.pipelineinference import *
+from mldb.verification.codegen import *
 from mldb.mldb import mldb
 
 
 
 m = mldb()
 
-@pipeline_stage(m, True)
+@pipeline_stage(m)
 def f(x):
 	#datain: 0
-	return np.random.randn(100,1)
+	return ['a', 'a', 'b', 'c']
 
-print f([1])
+f(1)
+
+print codeGen(m)
